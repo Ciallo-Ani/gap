@@ -253,7 +253,7 @@ public int handler(Menu menu, MenuAction action, int client, int item)
 
 					if(difference[2] > 65)
 					{
-						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {RED}(>65) {TARGET}最小速度: {RED}跳不过去",
+						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {RED}(>65 跳不过去)",
 									distance,
 									difference[2]);
 					}
@@ -295,7 +295,7 @@ public int handler(Menu menu, MenuAction action, int client, int item)
 
 
 						// Credit to Charles_(hypnos) for the implementation of velocity stuff (https://hyps.dev/)
-						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {TARGET}起跳速度: {YELLOWORANGE}%.2f {TARGET}最终速度: {YELLOWORANGE}%.2f",
+						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {TARGET}起跳速度: {YELLOWORANGE}≧%.2f {TARGET}最终速度: {YELLOWORANGE}≧%.2f",
 										distance,
 										difference[2], gMinVelOneTick, gMinVel);
 					}
