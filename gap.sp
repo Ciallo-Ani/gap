@@ -1,7 +1,9 @@
 #include <sourcemod>
 #include <cstrike>
 #include <sdktools>
-#include "colors.sp"
+#include <regex>
+
+#define CHAT_PREFIX "{ALTO}[{PERIWINKLE}Gap{ALTO}]"
 
 #define POINT_A 0
 #define POINT_B 1
@@ -21,7 +23,7 @@ public Plugin myinfo =
 	url = ""
 }
 
-EngineVersion gEV_Type = Engine_Unknown;
+StringMap gSM_Colors = null;
 
 bool gGap[MAXPLAYERS + 1];
 int gCurrPoint[MAXPLAYERS + 1];
@@ -69,15 +71,7 @@ public void OnPluginStart()
 	sv_gravity.AddChangeHook(OnGravityChanged);
 	gGravity = sv_gravity.FloatValue;
 
-	gEV_Type = GetEngineVersion();
-	if(gEV_Type == Engine_CSS)
-	{
-		gCvarBeamMaterial = CreateConVar("gap_beams_material", "sprites/laser.vmt", "Material used for beams. Server restart needed for this to take effect.");
-	}
-	else
-	{
-		gCvarBeamMaterial = CreateConVar("gap_beams_material", "sprites/laserbeam.vmt", "Material used for beams. Server restart needed for this to take effect.");
-	}
+	gCvarBeamMaterial = CreateConVar("gap_beams_material", "sprites/laserbeam.vmt", "Material used for beams. Server restart needed for this to take effect.");
 }
 
 public void OnGravityChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -137,14 +131,7 @@ void OpenMenu(int client)
 		panel.DrawItem(gridText);
 	}
 
-	if(gEV_Type == Engine_CSS)
-	{
-		panel.CurrentKey = 10;
-	}
-	else
-	{
-		panel.CurrentKey = 9;
-	}
+	panel.CurrentKey = 9;
 	panel.DrawItem("Exit", ITEMDRAW_CONTROL);
 
 	gGap[client] = panel.Send(client, handler, MENU_TIME_FOREVER);
@@ -522,4 +509,124 @@ stock void RotateClockwise(float p[3], float angle) // 2d
 
 	p[0] = p[0] * c + p[1] * s;
 	p[1] = p[1] * c - p[0] * s;
+}
+
+stock void InitColors()
+{
+	if (gSM_Colors != null)
+		return;
+	
+	gSM_Colors = new StringMap();
+
+	// Reddish
+	gSM_Colors.SetValue("CARNATION", 0x07)
+	gSM_Colors.SetValue("MAUVELOUS", 0x07)
+
+	// Pinkish
+	gSM_Colors.SetValue("SUNGLO", 0x03)
+	gSM_Colors.SetValue("BRICKRED", 0x03)
+	gSM_Colors.SetValue("YOURPINK", 0x03)
+	gSM_Colors.SetValue("HOTPINK", 0x03)
+
+	// Orangish
+	gSM_Colors.SetValue("PUMPKIN", 0x10)
+	gSM_Colors.SetValue("CORAL", 0x10)
+	gSM_Colors.SetValue("SUNSETORANGE", 0x10)
+	gSM_Colors.SetValue("YELLOWORANGE", 0x10)
+
+	// Yellowish
+	gSM_Colors.SetValue("TURBO", 0x09)
+	gSM_Colors.SetValue("LASERLEMON", 0x09)
+	gSM_Colors.SetValue("GOLD", 0x09)
+
+	// Greenish
+	gSM_Colors.SetValue("SUSHI", 0x06)
+	gSM_Colors.SetValue("WATTLE", 0x06)
+
+	// Blueish
+	gSM_Colors.SetValue("DODGERBLUE", 0x0B)
+	gSM_Colors.SetValue("PERIWINKLE", 0x0A)
+	gSM_Colors.SetValue("CYAN", 0x0B)
+
+	// Misc
+	gSM_Colors.SetValue("WHITE", 0x01)
+	gSM_Colors.SetValue("RED", 0x02)
+	gSM_Colors.SetValue("BLUE", 0x0C)
+	gSM_Colors.SetValue("GREEN", 0x04)
+	gSM_Colors.SetValue("YELLOW", 0x09)
+	gSM_Colors.SetValue("AQUAMARINE", 0x0B)
+	gSM_Colors.SetValue("MERCURY", 0x08)
+	gSM_Colors.SetValue("TUNDORA", 0x08)
+	gSM_Colors.SetValue("ALTO", 0x0B)
+
+	// Defaults
+	gSM_Colors.SetValue("CHAT", 0x01)
+	gSM_Colors.SetValue("ADMIN",0x0B)
+	gSM_Colors.SetValue("TARGET", 0x04)
+}
+
+stock void Print2(int client, const char[] message, any ...)
+{
+	InitColors();
+	
+	char buffer[1024], buffer2[1024];
+	
+	FormatEx(buffer, sizeof(buffer), "\x01%s %s", CHAT_PREFIX, message);
+	VFormat(buffer2, sizeof(buffer2), buffer, 3);
+	ReplaceColorCodes(buffer2, sizeof(buffer2));
+
+	PrintToChat(client, buffer2);
+}
+
+stock void Print2All(const char[] message, any ...)
+{
+	InitColors();
+	
+	char buffer[1024], buffer2[1024];
+	
+	FormatEx(buffer, sizeof(buffer), "\x01%s %s", CHAT_PREFIX, message);
+	VFormat(buffer2, sizeof(buffer2), buffer, 2);
+	ReplaceColorCodes(buffer2, sizeof(buffer2));
+	
+	PrintToChatAll(buffer2);
+}
+
+stock void ReplaceColorCodes(char[] input, int maxlen)
+{
+	int cursor;
+	int value;
+	char tag[32], buff[32];
+	char[] output = new char[maxlen];
+	strcopy(output, maxlen, input);
+	
+	Regex regex = new Regex("{[a-zA-Z0-9]+}");
+	for (int i = 0; i < 1000; i++)
+	{
+		if (regex.Match(input[cursor]) < 1)
+		{
+			delete regex;
+			strcopy(input, maxlen, output);
+			return;
+		}
+
+		// Found a potential tag string
+		GetRegexSubString(regex, 0, tag, sizeof(tag));
+		
+		// Update the cursor
+		cursor = StrContains(input[cursor], tag) + cursor + 1;
+		
+		// Get rid of brackets
+		strcopy(buff, sizeof(buff), tag);
+		ReplaceString(buff, sizeof(buff), "{", "");
+		ReplaceString(buff, sizeof(buff), "}", "");
+		
+		// Does such a color exist?
+		if (!gSM_Colors.GetValue(buff, value))
+			continue; // No, keep iterating through the string
+		
+		// Yes, it does. Replace text with the corresponding color
+		Format(buff, sizeof(buff), "%c", value);
+		
+		ReplaceString(output, maxlen, tag, buff);
+	}
 }
