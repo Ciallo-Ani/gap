@@ -3,7 +3,7 @@
 #include <sdktools>
 #include <regex>
 
-#define CHAT_PREFIX "{ALTO}[{PERIWINKLE}Gap{ALTO}]"
+#define CHAT_PREFIX " {ALTO}[{PERIWINKLE}测距{ALTO}]"
 
 #define POINT_A 0
 #define POINT_B 1
@@ -65,7 +65,7 @@ enum struct Line
 
 public void OnPluginStart()
 {
-	RegConsoleCmd("sm_gap", ConCmd_Gap, "Activates the feature", .flags = 0)
+	RegConsoleCmd("sm_gap", ConCmd_Gap, "Activates the feature")
 
 	ConVar sv_gravity = FindConVar("sv_gravity");
 	sv_gravity.AddChangeHook(OnGravityChanged);
@@ -107,32 +107,41 @@ void OpenMenu(int client)
 {
 	Panel panel = new Panel();
 
-	panel.SetTitle("Gap");
-	panel.DrawItem("Select point");
+	panel.SetTitle("测距菜单");
+
+	panel.DrawItem("", ITEMDRAW_SPACER | ITEMDRAW_RAWLINE);
+
+	char sPoint[16];
+	FormatEx(sPoint, sizeof(sPoint), "%s", gCurrPoint[client] == POINT_A ? "起点" : "终点")
+	panel.DrawItem(sPoint);
+
+	panel.DrawItem("", ITEMDRAW_SPACER | ITEMDRAW_RAWLINE);
 
 	// Feeling kinda lazy today
 	if (gShowCursor[client])
 	{
-		panel.DrawItem("Show cursor: on");
+		panel.DrawItem("显示游标 [开启中]");
 	}
 	else
 	{
-		panel.DrawItem("Show cursor: off");
+		panel.DrawItem("显示游标 [已关闭]");
 	}
 
 	if (gSnapToGrid[client] == 0)
 	{
-		panel.DrawItem("Snap to grid: off");
+		panel.DrawItem("游标网格对齐 [已关闭]");
 	}
 	else
 	{
 		char gridText[32];
-		FormatEx(gridText, sizeof(gridText), "Snap to grid: %d", gSnapValues[ gSnapToGrid[client] ] );
+		FormatEx(gridText, sizeof(gridText), "游标网格对齐度 [%d]", gSnapValues[ gSnapToGrid[client] ] );
 		panel.DrawItem(gridText);
 	}
 
+	panel.DrawItem("", ITEMDRAW_SPACER | ITEMDRAW_RAWLINE);
+
 	panel.CurrentKey = 9;
-	panel.DrawItem("Exit", ITEMDRAW_CONTROL);
+	panel.DrawItem("退出", ITEMDRAW_CONTROL);
 
 	gGap[client] = panel.Send(client, handler, MENU_TIME_FOREVER);
 
@@ -244,9 +253,9 @@ public int handler(Menu menu, MenuAction action, int client, int item)
 
 					if(difference[2] > 65)
 					{
-						Print2(client, "{CHAT}Distance: {YELLOWORANGE}%.2f {CHAT}DiifX: {YELLOWORANGE}%.2f {CHAT}DiffY: {YELLOWORANGE}%.2f {CHAT}DiffZ: {YELLOWORANGE}%.2f {CHAT}MinVelocity: {YELLOWORANGE}Impossible Jump ΔZ>65",
+						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {RED}(>65) {TARGET}最小速度: {RED}跳不过去",
 									distance,
-									difference[0], difference[1], difference[2]);
+									difference[2]);
 					}
 					else
 					{
@@ -286,9 +295,9 @@ public int handler(Menu menu, MenuAction action, int client, int item)
 
 
 						// Credit to Charles_(hypnos) for the implementation of velocity stuff (https://hyps.dev/)
-						Print2(client, "{CHAT}Distance: {YELLOWORANGE}%.2f {CHAT}DiifX: {YELLOWORANGE}%.2f {CHAT}DiffY: {YELLOWORANGE}%.2f {CHAT}DiffZ: {YELLOWORANGE}%.2f {CHAT}MinVelocity: {YELLOWORANGE}%.2f {CHAT}MinVelocityWith1Tick: {YELLOWORANGE}%.2f",
+						Print2(client, "{TARGET}距离: {YELLOWORANGE}%.2f {TARGET}高度差: {YELLOWORANGE}%.2f {TARGET}起跳速度: {YELLOWORANGE}%.2f {TARGET}最终速度: {YELLOWORANGE}%.2f",
 										distance,
-										difference[0], difference[1], difference[2], gMinVel, gMinVelOneTick);
+										difference[2], gMinVelOneTick, gMinVel);
 					}
 
 					gCurrPoint[client] = POINT_A;
@@ -296,7 +305,7 @@ public int handler(Menu menu, MenuAction action, int client, int item)
 			}
 			else
 			{
-				Print2(client, "{CHAT}Couldn't get point position (raytrace did not hit). Try again.");
+				Print2(client, "{CHAT}无法获取点坐标 (没有发生碰撞). 请重试!");
 			}
 			OpenMenu(client);
 		}
